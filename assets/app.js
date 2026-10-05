@@ -370,7 +370,7 @@
     h += '<div class="r-title-row"><div>';
     h += '<p class="eyebrow">' + (state.sample ? '<span class="sample-flag">Sample data</span> ' : '') + 'Databricks Cost X-Ray <span class="dot" aria-hidden="true">/</span> last ' + DAYS + ' days</p>';
     h += '<h1 class="h1" style="font-size:clamp(32px,4.4vw,52px)">Your 90-day <em>cost</em> <span class="nw">X-Ray</span></h1>';
-    h += '<div class="r-meta"><span class="chip chip-g">Generated ' + esc(dateStr) + '</span><span class="chip chip-g">List prices, ' + esc(currency) + '</span>' +
+    h += '<div class="r-meta"><span class="chip chip-g">Generated ' + esc(dateStr) + '</span><span class="chip chip-g">List price, before contract discounts (' + esc(currency) + ')</span>' +
       ['spend', 'jobs', 'cpu'].map(function (k) { return '<span class="chip ' + (D[k] ? 'chip-m' : 'chip-n') + '">Q' + SCHEMAS[k].q + ' ' + SCHEMAS[k].label + (D[k] ? '' : ': not provided') + '</span>'; }).join('') + '</div>';
     h += '</div><div class="r-legend" aria-label="Legend"><div>' + M_CHIP + '<span>Read directly from your system tables</span></div><div><span class="chip chip-e">Estimated</span><span>Derived with a stated rule. Treat as a range, not a promise</span></div></div>';
     h += '</div></div></section>';
@@ -380,7 +380,7 @@
     // KPIs
     h += '<div class="kpis">';
     h += m.total != null
-      ? kpi('', '90-day list spend', money(m.total), M_CHIP, intf(m.skuCount) + ' SKUs at list price' + (m.unpriced && m.unpriced.length ? '. ' + m.unpriced.length + ' usage line' + (m.unpriced.length > 1 ? 's' : '') + ' had no list price match' : ''))
+      ? kpi('', '90-day list spend', money(m.total), M_CHIP, intf(m.skuCount) + ' SKUs at list price, before contract discounts' + (m.unpriced && m.unpriced.length ? '. ' + m.unpriced.length + ' usage line' + (m.unpriced.length > 1 ? 's' : '') + ' had no list price match' : ''))
       : kpi('na', '90-day list spend', 'Needs query 1', '<span class="chip chip-n">Missing</span>', 'Add the spend summary file');
     h += m.traced != null
       ? kpi('', 'Traced to job runs', pct(m.total ? m.traced / m.total : 0), M_CHIP, money(m.traced) + ' traced. <b>' + money(m.untraced) + '</b> untraced is a visibility gap, not savings')
@@ -511,6 +511,7 @@
       '<li><b>Renewal evidence.</b> A defensible baseline and forecast to take into your Databricks negotiation.</li></ul>' +
       '<div class="cta-row"><a class="btn btn-y print-url" data-short="bighammer.ai/book-demo" href="' + esc(linkFor('book', 'report-book-call')) + '">Book a call with BigHammer</a>' +
       '<a class="btn btn-outline-l print-url" data-short="assessment.bighammerops.com" href="' + esc(linkFor('assess', 'report-offline-assessment')) + '">Run the offline assessment</a></div>' +
+      '<p class="assess-note">The offline assessment is 7 published, read-only SQL queries you run in one Databricks SQL warehouse session. You export the results to CSV, zip them and send them to BigHammer. It needs a temporary view and a catalog and schema where the collected result tables can be kept.</p>' +
       '<a class="guide-link" href="' + esc(linkFor('guide', 'report-field-guide')) + '">Read the Databricks Cost Field Guide</a></section>';
     h += '</div>';
 
@@ -518,7 +519,7 @@
     h += '<section class="card method" aria-labelledby="h-meth"><h3 id="h-meth">Method and definitions</h3><dl>' +
       '<dt>List cost</dt><dd><code>usage_quantity</code> × <code>pricing.effective_list.default</code> from <code>system.billing.list_prices</code>, matched on SKU, cloud, usage unit and the price validity window.</dd>' +
       '<dt>Traced</dt><dd>Usage where <code>usage_metadata.job_run_id</code> is not null.</dd>' +
-      '<dt>Failed cost</dt><dd>Cost of job runs whose final <code>result_state</code> in <code>system.lakeflow.job_run_timeline</code> is ' + FAILED_STATES + '.</dd>' +
+      '<dt>Failed cost</dt><dd>Cost of job runs whose final <code>result_state</code> (latest non-null value per run) in <code>system.lakeflow.job_run_timeline</code> is ' + FAILED_STATES + '.</dd>' +
       '<dt>Scheduled runs</dt><dd>Runs with <code>trigger_type</code> CRON, PERIODIC, CONTINUOUS, FILE_ARRIVAL or TABLE.</dd>' +
       '<dt>All-Purpose cost</dt><dd>SKUs containing <code>ALL_PURPOSE</code> and not <code>SERVERLESS</code>.</dd>' +
       '<dt>CPU</dt><dd><code>cpu_user_percent + cpu_system_percent</code> on worker nodes from <code>system.compute.node_timeline</code>, per-minute samples. Single-node clusters have no workers and do not appear.</dd>' +
@@ -568,7 +569,7 @@
 
   function summary() {
     var m = lastModel, L = [];
-    L.push('Databricks Cost X-Ray: last ' + DAYS + ' days at list price (' + currency + ')');
+    L.push('Databricks Cost X-Ray: last ' + DAYS + ' days at list price, before contract discounts (' + currency + ')');
     if (state.sample) L.push('SAMPLE DATA: synthetic workloads, not a real account');
     L.push('');
     if (m.total != null) L.push('Total list spend: ' + money(m.total) + ' [measured]');

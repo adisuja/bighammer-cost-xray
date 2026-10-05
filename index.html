@@ -124,7 +124,7 @@
           <p class="eyebrow">Step 1</p>
           <h2 class="h2">Copy the <em>read-only</em> queries</h2>
         </div>
-        <p class="sec-note">Needs Unity Catalog with system tables enabled, and <code>SELECT</code> on <code>system.billing</code>, <code>system.lakeflow</code> and <code>system.compute</code>. An account admin can grant these. Costs are calculated at Databricks list price for the last 90 days.</p>
+        <p class="sec-note">Needs Unity Catalog with system tables enabled, and <code>SELECT</code> on <code>system.billing</code>, <code>system.lakeflow</code> and <code>system.compute</code>. An account admin can grant these. Costs are at Databricks list price (<code>pricing.effective_list.default</code>), before contract discounts, for the last 90 days.</p>
       </div>
 
       <div class="qtabs" role="tablist" aria-label="Queries">
@@ -195,9 +195,9 @@ WITH run_cost AS (
   GROUP BY 1, 2, 3
 ),
 runs AS (
-  -- runs over 1 hour span several rows; result_state is only set on the last row
+  -- runs over 1 hour span several rows; take the final state of each run
   SELECT workspace_id, job_id, run_id,
-         MAX(result_state) AS result_state,
+         MAX_BY(result_state, period_end_time) FILTER (WHERE result_state IS NOT NULL) AS result_state,
          MAX(trigger_type) AS trigger_type
   FROM system.lakeflow.job_run_timeline
   WHERE period_start_time &gt;= date_sub(current_date(), 97)
