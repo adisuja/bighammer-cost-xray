@@ -29,8 +29,8 @@
     jobs: {
       label: 'Cost per job', q: 2,
       required: ['job_id', 'list_cost'],
-      optional: ['job_name', 'workspace_id', 'runs', 'failed_runs', 'failed_cost', 'all_purpose_cost', 'serverless_cost', 'scheduled_runs'],
-      signature: ['job_id', 'job_name', 'runs', 'failed_runs', 'failed_cost', 'all_purpose_cost', 'scheduled_runs']
+      optional: ['job_name', 'workspace_id', 'runs', 'failed_runs', 'failed_cost', 'all_purpose_cost', 'serverless_cost', 'scheduled_runs', 'ap_cluster_cost'],
+      signature: ['job_id', 'job_name', 'runs', 'failed_runs', 'failed_cost', 'all_purpose_cost', 'scheduled_runs', 'ap_cluster_cost']
     },
     cpu: {
       label: 'Cluster CPU', q: 3,
@@ -151,7 +151,8 @@
         o = { id: String(get(r, 'job_id') || '').trim(), name: String(get(r, 'job_name') || '').trim(),
           ws: String(get(r, 'workspace_id') || '').trim(), runs: num(get(r, 'runs')), failedRuns: num(get(r, 'failed_runs')),
           sched: has('scheduled_runs') ? num(get(r, 'scheduled_runs')) : null, cost: num(get(r, 'list_cost')),
-          failedCost: num(get(r, 'failed_cost')), ap: num(get(r, 'all_purpose_cost')) || 0, sl: num(get(r, 'serverless_cost')) || 0 };
+          failedCost: num(get(r, 'failed_cost')), ap: num(get(r, 'all_purpose_cost')) || 0, sl: num(get(r, 'serverless_cost')) || 0, apc: num(get(r, 'ap_cluster_cost')) || 0 };
+        if (o.cost == null && o.apc) o.cost = 0;
         if (!o.id || o.cost == null) { bad++; return; }
         if (!o.name) o.name = 'job ' + o.id;
       } else {
@@ -163,7 +164,7 @@
       }
       out.push(o);
     });
-    return { rows: out, bad: bad, cols: idx, has: { scheduled: has('scheduled_runs'), traced: has('traced_to_job'), failed: has('failed_cost'), ap: has('all_purpose_cost'), hours: has('hours_observed'), cpuCost: has('list_cost') } };
+    return { rows: out, bad: bad, cols: idx, has: { scheduled: has('scheduled_runs'), traced: has('traced_to_job'), failed: has('failed_cost'), ap: has('all_purpose_cost'), apc: has('ap_cluster_cost'), hours: has('hours_observed'), cpuCost: has('list_cost') } };
   }
 
   function ingest(name, text) {
@@ -182,7 +183,7 @@
     if (!built.rows.length) return { kind: d.kind, error: '<b>' + esc(name) + '</b> has the right columns for query ' + s.q + ' but no usable rows. If the query returned nothing, your account may not have data in that table for the last 90 days.' };
     var warn = null;
     var missingOpt = s.optional.filter(function (c) { return built.cols[c] == null; });
-    var important = { spend: ['traced_to_job'], jobs: ['failed_cost', 'all_purpose_cost', 'scheduled_runs'], cpu: ['hours_observed', 'list_cost'] }[d.kind];
+    var important = { spend: ['traced_to_job'], jobs: ['failed_cost', 'scheduled_runs', 'ap_cluster_cost'], cpu: ['hours_observed', 'list_cost'] }[d.kind];
     var gone = important.filter(function (c) { return missingOpt.indexOf(c) >= 0; });
     if (gone.length) warn = '<b>' + esc(name) + '</b>: optional ' + (gone.length > 1 ? 'columns ' : 'column ') + gone.map(function (m) { return '<code>' + m + '</code>'; }).join(', ') + ' not found, so the matching parts of the report will be partial.';
     if (built.bad) warn = (warn ? warn + ' ' : '<b>' + esc(name) + '</b>: ') + built.bad + ' row' + (built.bad > 1 ? 's' : '') + ' skipped because key values were blank or not numeric.';
@@ -288,6 +289,7 @@
       // implied price ratio from the account's own list prices
       var jc = priced.filter(function (r) { return /JOBS/.test(r.sku) && !/SERVERLESS/.test(r.sku) && !/ALL_PURPOSE/.test(r.sku); });
       var ap = priced.filter(function (r) { return /ALL_PURPOSE/.test(r.sku) && !/SERVERLESS/.test(r.sku); });
+      m.apClassicSpend = sum(ap, function (r) { return r.cost; });
       var jcD = sum(jc, function (r) { return r.dbus; }), apD = sum(ap, function (r) { return r.dbus; });
       if (jcD > 0 && apD > 0) {
         var ir = (sum(jc, function (r) { return r.cost; }) / jcD) / (sum(ap, function (r) { return r.cost; }) / apD);
@@ -296,22 +298,32 @@
     }
 
     if (D.jobs) {
-      var J = D.jobs.rows.slice().sort(function (a, b) { return b.cost - a.cost; });
+      var J = D.jobs.rows.slice();
+      J.forEach(function (j) { j.total = (j.cost > 0 ? j.cost : 0) + (j.apc > 0 ? j.apc : 0); });
+      J.sort(function (a, b) { return b.total - a.total; });
       m.jobs = J; m.jobsTotal = sum(J, function (j) { return j.cost; });
       m.hasFailed = D.jobs.has.failed;
       m.failedCost = sum(J, function (j) { return j.failedCost; });
       m.failedRuns = sum(J, function (j) { return j.failedRuns; });
       m.runs = sum(J, function (j) { return j.runs; });
-      m.hasAP = D.jobs.has.ap; m.hasSched = D.jobs.has.scheduled;
+      m.hasAPC = D.jobs.has.apc;
+      m.hasAP = D.jobs.has.ap || m.hasAPC; m.hasSched = D.jobs.has.scheduled;
+      // failures on all-purpose clusters are billed to the cluster, so their cost is not in failed_cost
+      m.apcFailedRuns = sum(J.filter(function (j) { return j.apc > 0; }), function (j) { return j.failedCost ? 0 : j.failedRuns; });
       J.forEach(function (j) {
-        var c = j.cost > 0 ? j.cost : 0;
-        j.apShare = c ? j.ap / c : 0; j.slShare = c ? j.sl / c : 0;
+        var c = j.total;
+        j.apShare = c ? (j.ap + j.apc) / c : 0; j.slShare = c ? j.sl / c : 0;
         j.type = !m.hasAP ? null : j.apShare >= 0.5 ? 'ap' : j.slShare >= 0.5 ? 'sl' : (j.apShare + j.slShare) < 0.1 ? 'jc' : 'mx';
       });
-      var apJobs = J.filter(function (j) { return j.ap > 0 && (!m.hasSched || (j.sched || 0) > 0); });
+      var apJobs = J.filter(function (j) { return (j.ap + j.apc) > 0 && (!m.hasSched || (j.sched || 0) > 0); });
       m.apJobs = apJobs;
-      m.apBase = sum(apJobs, function (j) { return j.ap; });
-      m.apAll = sum(J, function (j) { return j.ap; });
+      m.apMeasured = sum(apJobs, function (j) { return j.ap; });
+      m.apEst = sum(apJobs, function (j) { return j.apc; });
+      m.apBase = m.apMeasured + m.apEst;
+      m.apAll = sum(J, function (j) { return j.ap + j.apc; });
+      // never attribute more to jobs than the classic All-Purpose spend in the spend file
+      m.apCapped = false;
+      if (m.apClassicSpend != null && m.apBase > m.apClassicSpend) { m.apBase = m.apClassicSpend; m.apCapped = true; }
       m.apSaving = m.hasAP ? m.apBase * (1 - m.ratio) : 0;
     } else { m.apSaving = 0; }
 
@@ -386,7 +398,7 @@
       ? kpi('', 'Traced to job runs', pct(m.total ? m.traced / m.total : 0), M_CHIP, money(m.traced) + ' traced. <b>' + money(m.untraced) + '</b> untraced is a visibility gap, not savings')
       : kpi('na', 'Traced to job runs', D.spend ? 'Column missing' : 'Needs query 1', '<span class="chip chip-n">Missing</span>', 'Needs the traced_to_job column');
     h += m.hasFailed
-      ? kpi('k-waste', 'Failed or timed-out runs', money(m.failedCost), M_CHIP, intf(m.failedRuns) + ' of ' + intf(m.runs) + ' runs ended ' + 'FAILED, TIMED_OUT or ERROR')
+      ? kpi('k-waste', 'Failed or timed-out runs', money(m.failedCost), M_CHIP, intf(m.failedRuns) + ' of ' + intf(m.runs) + ' runs ended ' + 'FAILED, TIMED_OUT or ERROR' + (m.apcFailedRuns ? '. Failures on all-purpose clusters are not priced' : ''))
       : kpi('na', 'Failed or timed-out runs', 'Needs query 2', '<span class="chip chip-n">Missing</span>', 'Add the cost per job file');
     var estMethod = 'All-Purpose to Jobs compute price ratio, then right-sizing on the remainder';
     h += (D.jobs || D.cpu)
@@ -417,23 +429,25 @@
       h += '<div class="stack" role="img" aria-label="' + pct(tp) + ' traced, ' + pct(1 - tp) + ' untraced"><span class="tr" style="width:' + (tp * 100).toFixed(2) + '%"></span><span class="un" style="width:' + ((1 - tp) * 100).toFixed(2) + '%"></span></div>';
       h += '<div class="stack-l"><span><i class="sw tr"></i>Traced ' + money(m.traced) + '</span><span><i class="sw un"></i>Untraced ' + money(m.untraced) + '</span></div>';
       if (m.untracedBy && m.untracedBy.length) h += '<div class="mini" aria-label="Untraced spend by product">' + m.untracedBy.slice(0, 5).map(function (x) { return '<div><span>' + esc(x.k) + '</span><span>' + money(x.v) + '</span></div>'; }).join('') + '</div>';
+      if (m.apEst > 0) h += '<p class="kpi-s" style="margin-top:12px"><span class="chip chip-e">Estimated</span> About <b>' + money(m.apEst) + '</b> of the untraced spend looks like scheduled job work on all-purpose clusters (query 2). Databricks bills it to the cluster, not the job.</p>';
       h += '<p class="vis-note">Untraced is <b>not</b> savings. It is notebooks, SQL warehouses, pipelines and serving that no job run owns. You cannot judge spend you cannot attribute, so closing this gap usually comes first.</p>';
     } else h += D.spend ? '<div class="empty">The spend file has no <code>traced_to_job</code> column, so the gap cannot be measured.</div>' : emptyBox('spend summary', 1);
     h += '</section>';
 
     // top jobs
-    h += '<section class="card panel span-12" aria-labelledby="h-jobs"><div class="p-head"><div><h3 id="h-jobs">Top 10 jobs by cost</h3><p>List cost per job over 90 days, with the cost of runs that ended ' + FAILED_STATES + '.' + (m.jobs ? ' Showing ' + Math.min(10, m.jobs.length) + ' of ' + intf(m.jobs.length) + ' jobs, together ' + money(m.jobsTotal) + '.' : '') + '</p></div><div class="p-chips">' + M_CHIP + '</div></div>';
+    h += '<section class="card panel span-12" aria-labelledby="h-jobs"><div class="p-head"><div><h3 id="h-jobs">Top 10 jobs by cost</h3><p>List cost billed to each job over 90 days, with the cost of runs that ended ' + FAILED_STATES + '.' + (m.hasAPC ? ' Jobs on all-purpose clusters are billed to the cluster, so their share of cluster cost is estimated in its own column.' : '') + (m.jobs ? ' Showing ' + Math.min(10, m.jobs.length) + ' of ' + intf(m.jobs.length) + ' jobs; billed to jobs ' + money(m.jobsTotal) + '.' : '') + '</p></div><div class="p-chips">' + M_CHIP + (m.hasAPC ? '<span class="chip chip-e">All-Purpose share estimated</span>' : '') + '</div></div>';
     if (m.jobs) {
-      var top = m.jobs.slice(0, 10), topMax = top.length ? top[0].cost : 1;
+      var top = m.jobs.slice(0, 10), topMax = top.length && top[0].total ? top[0].total : 1;
       var TL = { ap: ['ap', 'All-Purpose'], jc: ['jc', 'Jobs compute'], sl: ['sl', 'Serverless'], mx: ['mx', 'Mixed'] };
-      h += '<div class="tbl-wrap"><table class="t"><thead><tr><th scope="col">#</th><th scope="col">Job</th><th scope="col">Compute</th><th scope="col" class="r">Runs</th><th scope="col" class="r">Failed runs</th><th scope="col" class="r">Failed cost</th><th scope="col" class="r">90-day cost</th></tr></thead><tbody>';
+      h += '<div class="tbl-wrap"><table class="t"><thead><tr><th scope="col">#</th><th scope="col">Job</th><th scope="col">Compute</th><th scope="col" class="r">Runs</th><th scope="col" class="r">Failed runs</th><th scope="col" class="r">Failed cost</th><th scope="col" class="r">Billed to job</th>' + (m.hasAPC ? '<th scope="col" class="r">On All-Purpose (est.)</th>' : '') + '</tr></thead><tbody>';
       top.forEach(function (j, i) {
         var t = j.type ? TL[j.type] : null;
         h += '<tr><td class="rank">' + (i + 1) + '</td><td class="name" title="' + esc(j.name) + '">' + esc(j.name) + '<span class="sub">' + esc(j.id) + (j.sched === 0 ? ' &middot; manual runs' : '') + '</span></td>' +
           '<td data-label="Compute">' + (t ? '<span class="pill ' + t[0] + '">' + t[1] + '</span>' : '<span class="zero">n/a</span>') + '</td>' +
           '<td class="r" data-label="Runs">' + intf(j.runs) + '</td><td data-label="Failed runs" class="r' + (j.failedRuns ? '' : ' zero') + '">' + intf(j.failedRuns) + '</td>' +
-          '<td data-label="Failed cost" class="r ' + (j.failedCost ? 'neg' : 'zero') + '">' + (j.failedCost == null ? 'n/a' : money(j.failedCost)) + '</td>' +
-          '<td class="r" data-label="90-day cost"><b>' + money(j.cost) + '</b><span class="share" aria-hidden="true"><i style="width:' + (j.cost / topMax * 100).toFixed(1) + '%"></i></span></td></tr>';
+          '<td data-label="Failed cost" class="r ' + (j.failedCost ? 'neg' : 'zero') + '">' + (j.failedCost == null ? 'n/a' : (!j.failedCost && j.apc > 0 && j.failedRuns ? '<span title="Billed to the all-purpose cluster, not the job">not priced</span>' : money(j.failedCost))) + '</td>' +
+          '<td class="r' + (j.cost ? '' : ' zero') + '" data-label="Billed to job"><b>' + money(j.cost) + '</b>' + (m.hasAPC ? '' : '<span class="share" aria-hidden="true"><i style="width:' + (j.total / topMax * 100).toFixed(1) + '%"></i></span>') + '</td>' +
+          (m.hasAPC ? '<td class="r ' + (j.apc ? 'sav' : 'zero') + '" data-label="On All-Purpose (est.)">' + money(j.apc) + '</td>' : '') + '</tr>';
       });
       h += '</tbody></table></div>';
     } else h += emptyBox('cost per job', 2);
@@ -441,15 +455,17 @@
 
     // AP to Jobs
     var apMethod = 'All-Purpose cost x (1 - jobs rate / all-purpose rate)';
-    h += '<section class="card panel span-12" aria-labelledby="h-ap"><div class="p-head"><div><h3 id="h-ap">Scheduled jobs on All-Purpose compute</h3><p>Automated job runs billed at the All-Purpose rate. Jobs compute runs the same workload at a lower list price per DBU.</p></div><div class="p-chips">' + M_CHIP.replace('Measured', 'Cost measured') + E_CHIP(apMethod).replace('>Estimated<', '>Saving estimated<') + '</div></div>';
+    h += '<section class="card panel span-12" aria-labelledby="h-ap"><div class="p-head"><div><h3 id="h-ap">Scheduled jobs on All-Purpose compute</h3><p>Scheduled job runs on interactive (all-purpose) clusters pay the All-Purpose rate. Jobs compute runs the same workload at a lower list price per DBU.</p></div><div class="p-chips">' + (m.apEst > 0 || m.hasAPC ? '<span class="chip chip-e">Cost estimated, upper bound</span>' : M_CHIP.replace('Measured', 'Cost measured')) + E_CHIP(apMethod).replace('>Estimated<', '>Saving estimated<') + '</div></div>';
     if (m.jobs && m.hasAP) {
       h += '<div class="est"><div>';
-      h += '<div class="kpi-l">' + (m.hasSched ? 'Scheduled or triggered job cost on All-Purpose' : 'Job cost on All-Purpose (trigger type not in file)') + '</div>';
+      h += '<div class="kpi-l">' + (m.hasSched ? 'Scheduled job spend on All-Purpose compute' : 'Job spend on All-Purpose compute (trigger type not in file)') + '</div>';
       h += '<div class="kpi-v" style="margin:4px 0 14px">' + money(m.apBase) + '</div>';
+      if (m.hasAPC) h += '<p class="est-s" style="margin:-6px 0 14px">Databricks bills jobs on all-purpose clusters to the cluster, not the job. This is each cluster\'s cost in the hours a scheduled task ran on it, shared evenly between jobs in the same hour. It is an <b>upper bound</b>: interactive use of the cluster in those hours is included.' + (m.apMeasured > 1 ? ' Includes ' + money(m.apMeasured) + ' billed directly to jobs.' : '') + (m.apCapped ? ' Capped at your total classic All-Purpose spend.' : '') + '</p>';
       h += '<div class="kpi-l">Estimated saving from moving it to Jobs compute</div><div class="est-n" id="apSaving">' + money(m.apSaving) + '</div>';
       h += '<div class="formula">Rule: All-Purpose cost × (1 - jobs rate / all-purpose rate)<br><b>' + money(m.apBase) + ' × (1 - ' + m.ratio.toFixed(2) + ') = ' + money(m.apSaving) + '</b></div>';
-      if (m.hasSched && m.apAll - m.apBase > 1) h += '<p class="est-s">A further ' + money(m.apAll - m.apBase) + ' of job cost on All-Purpose comes from manually started runs and is not included.</p>';
-      if (m.apJobs.length) h += '<div class="mini">' + m.apJobs.slice().sort(function (a, b) { return b.ap - a.ap; }).slice(0, 5).map(function (j) { return '<div><span>' + esc(j.name) + '</span><span>' + money(j.ap) + '</span></div>'; }).join('') + '</div>';
+      if (m.hasSched && !m.apCapped && m.apAll - m.apBase > 1) h += '<p class="est-s">A further ' + money(m.apAll - m.apBase) + ' of job cost on All-Purpose comes from manually started runs and is not included.</p>';
+      if (m.apBase === 0) h += '<p class="est-s">No scheduled job runs on all-purpose clusters were found in the file.' + (m.hasAPC ? '' : ' Your per-job file has no <code>ap_cluster_cost</code> column, and Databricks does not tag all-purpose usage with a job id, so re-run the current query 2 to see this spend.') + '</p>';
+      if (m.apJobs.length) h += '<div class="mini">' + m.apJobs.slice().sort(function (a, b) { return (b.ap + b.apc) - (a.ap + a.apc); }).slice(0, 5).map(function (j) { return '<div><span>' + esc(j.name) + '</span><span>' + money(j.ap + j.apc) + '</span></div>'; }).join('') + '</div>';
       h += '</div><div class="ratio-box no-print-inputs">';
       h += '<label for="ratioIn">Price ratio: Jobs rate / All-Purpose rate</label>';
       h += '<div class="ratio-in"><input id="ratioIn" type="number" min="0.05" max="1" step="0.01" value="' + m.ratio.toFixed(2) + '" inputmode="decimal" aria-describedby="ratioSrc"><span class="ratio-pct" id="ratioPct">Jobs compute costs ' + pct(m.ratio) + ' of the All-Purpose rate</span></div>';
@@ -522,6 +538,7 @@
       '<dt>Failed cost</dt><dd>Cost of job runs whose final <code>result_state</code> (latest non-null value per run) in <code>system.lakeflow.job_run_timeline</code> is ' + FAILED_STATES + '.</dd>' +
       '<dt>Scheduled runs</dt><dd>Runs with <code>trigger_type</code> CRON, PERIODIC, CONTINUOUS, FILE_ARRIVAL or TABLE.</dd>' +
       '<dt>All-Purpose cost</dt><dd>SKUs containing <code>ALL_PURPOSE</code> and not <code>SERVERLESS</code>.</dd>' +
+      '<dt>Jobs on All-Purpose</dt><dd>Estimated. Usage on all-purpose clusters carries no job id, so <code>compute_ids</code> in <code>system.lakeflow.job_task_run_timeline</code> links scheduled task runs to clusters with <code>cluster_source</code> UI or API, and the cluster\'s cost in each hour touched is shared between the jobs that used it. An upper bound.</dd>' +
       '<dt>CPU</dt><dd><code>cpu_user_percent + cpu_system_percent</code> on worker nodes from <code>system.compute.node_timeline</code>, per-minute samples. Single-node clusters have no workers and do not appear.</dd>' +
       '<dt>Price ratio</dt><dd>' + m.ratio.toFixed(2) + (Math.abs(m.ratio - DEFAULT_RATIO) < 0.005 ? ' (default, Databricks published list prices, Premium tier on AWS)' : ' (edited in this report)') + '.</dd>' +
       '</dl></section>';
@@ -576,7 +593,7 @@
     if (m.traced != null) L.push('Traced to job runs: ' + money(m.traced) + ' (' + pct(m.traced / m.total) + '). Untraced visibility gap: ' + money(m.untraced) + ' (' + pct(m.untraced / m.total) + '), not counted as savings [measured]');
     if (m.hasFailed) L.push('Failed or timed-out runs: ' + money(m.failedCost) + ' across ' + intf(m.failedRuns) + ' runs [measured]');
     if (m.jobs && m.jobs.length) L.push('Top job: ' + m.jobs[0].name + ', ' + money(m.jobs[0].cost) + ' [measured]');
-    if (m.jobs && m.hasAP) L.push('Scheduled jobs on All-Purpose compute: ' + money(m.apBase) + '. Moving to Jobs compute: about ' + money(m.apSaving) + ' [estimated, cost x (1 - ' + m.ratio.toFixed(2) + '), list-price ratio]');
+    if (m.jobs && m.hasAP) L.push('Scheduled job spend on All-Purpose compute: ' + money(m.apBase) + (m.hasAPC ? ' [estimated upper bound, cluster cost in hours scheduled tasks ran]' : '') + '. Moving to Jobs compute: about ' + money(m.apSaving) + ' [estimated, cost x (1 - ' + m.ratio.toFixed(2) + '), list-price ratio]');
     if (m.under) L.push('Under-used clusters (avg CPU < ' + UNDER_AVG + '%, p95 < ' + UNDER_P95 + '%): ' + m.under.length + ', right-sizing about ' + money(m.rsSaving) + ' [estimated, applied after the move above]');
     if (state.data.jobs || state.data.cpu) L.push('Combined estimate: ' + money(m.est) + (m.total ? ' (' + pct(m.est / m.total, 1) + ' of spend)' : '') + ', about ' + money(m.annual, { compact: true }) + ' a year [estimated, non-overlapping]');
     L.push('');

@@ -21,8 +21,8 @@ names = [
     ("sap_extract_landing", "jobs", 4600), ("web_logs_parse", "jobs", 4100),
     ("forecast_weekly", "serverless", 3800), ("gdpr_erasure_sweep", "jobs", 3100),
     ("partner_api_sync", "ap", 2700), ("cost_tags_audit", "jobs", 2200),
-    ("sandbox_test_job", "ap", 1900), ("vacuum_optimise_all", "jobs", 1700),
-    ("ad_hoc_export_q3", "ap", 1300), ("geo_enrichment", "jobs", 1100),
+    ("sandbox_test_job", "jobs", 1900), ("vacuum_optimise_all", "jobs", 1700),
+    ("ad_hoc_export_q3", "jobs", 1300), ("geo_enrichment", "jobs", 1100),
 ]
 jobs = []
 for i, (n, kind, cost) in enumerate(names):
@@ -35,15 +35,20 @@ for i, (n, kind, cost) in enumerate(names):
     if n in ("customer_360_build", "clickstream_sessionise", "pricing_engine_backfill"): fail_rate = 0.11
     failed = int(round(runs * fail_rate))
     failed_cost = round(cost / runs * failed * random.uniform(0.7, 1.3), 2) if failed else 0.0
-    ap = round(cost * random.uniform(0.92, 1.0), 2) if kind == "ap" else 0.0
+    # jobs on all-purpose clusters: Databricks bills the cluster, not the job, so nothing is
+    # billed to the job id; query 2 estimates the cluster share as ap_cluster_cost instead
+    ap = 0.0
+    apc = round(cost * random.uniform(1.0, 1.12), 2) if kind == "ap" else 0.0
+    if kind == "ap": cost, failed_cost = 0.0, 0.0
     sl = round(cost * random.uniform(0.9, 1.0), 2) if kind == "serverless" else 0.0
     sched = runs if n not in ("ad_hoc_export_q3", "sandbox_test_job") else 0
     jobs.append(dict(workspace_id=WS, job_id=str(684213000000000 + i * 7919), job_name=n, runs=runs,
                      failed_runs=failed, scheduled_runs=sched, list_cost=cost, failed_cost=failed_cost,
-                     all_purpose_cost=ap, serverless_cost=sl))
+                     all_purpose_cost=ap, serverless_cost=sl, ap_cluster_cost=apc))
 
 jobs_total = sum(j["list_cost"] for j in jobs)
 ap_traced = sum(j["all_purpose_cost"] for j in jobs)
+ap_cluster = sum(j["ap_cluster_cost"] for j in jobs)
 sl_traced = sum(j["serverless_cost"] for j in jobs)
 jobs_classic_traced = jobs_total - ap_traced - sl_traced
 
@@ -58,8 +63,7 @@ def row(prod, sku, traced, priced, cost, price):
 row("JOBS", "PREMIUM_JOBS_COMPUTE", True, True, jobs_classic_traced * 0.78, P["JOBS"])
 row("JOBS", "PREMIUM_JOBS_COMPUTE_(PHOTON)", True, True, jobs_classic_traced * 0.22, P["JOBS"])
 row("JOBS", "PREMIUM_JOBS_SERVERLESS_COMPUTE_US_EAST_N_VIRGINIA", True, True, sl_traced, P["JOBS_SL"])
-row("ALL_PURPOSE", "PREMIUM_ALL_PURPOSE_COMPUTE", True, True, ap_traced, P["AP"])
-row("ALL_PURPOSE", "PREMIUM_ALL_PURPOSE_COMPUTE", False, True, 61240.18, P["AP"])
+row("ALL_PURPOSE", "PREMIUM_ALL_PURPOSE_COMPUTE", False, True, 61240.18 + ap_cluster, P["AP"])
 row("ALL_PURPOSE", "PREMIUM_ALL_PURPOSE_COMPUTE_(PHOTON)", False, True, 22975.40, P["AP"])
 row("SQL", "PREMIUM_SERVERLESS_SQL_COMPUTE_US_EAST_N_VIRGINIA", False, True, 38410.77, P["SQL_SL"])
 row("SQL", "PREMIUM_SQL_PRO_COMPUTE", False, True, 17862.05, P["SQL_PRO"])
@@ -107,17 +111,16 @@ with open(os.path.join(td, "xray_query1_spend.csv"), "w", newline="") as f:
     w = csv.writer(f, quoting=csv.QUOTE_ALL)
     w.writerow(["LIST_COST", "Sku_Name", "billing_origin_product", "dbus", "traced_to_job", "priced", "currency_code"])
     w.writerow(["12,480.50", "PREMIUM_JOBS_COMPUTE", "JOBS", "83,203.33", "true", "true", "USD"])
-    w.writerow(["6,600.00", "PREMIUM_ALL_PURPOSE_COMPUTE", "ALL_PURPOSE", "12,000", "true", "true", "USD"])
-    w.writerow(["9,350.25", "PREMIUM_ALL_PURPOSE_COMPUTE", "ALL_PURPOSE", "17,000.45", "false", "true", "USD"])
+    w.writerow(["15,950.25", "PREMIUM_ALL_PURPOSE_COMPUTE", "ALL_PURPOSE", "29,000.45", "false", "true", "USD"])
     w.writerow(["4,020.10", "PREMIUM_SERVERLESS_SQL_COMPUTE_US_EAST_N_VIRGINIA", "SQL", "5,743", "false", "true", "USD"])
     w.writerow(["", "PREMIUM_NETWORKING_EGRESS", "NETWORKING", "0", "false", "false", ""])
 with open(os.path.join(td, "xray_query2_jobs.csv"), "w", newline="") as f:
     w = csv.writer(f, quoting=csv.QUOTE_MINIMAL)
-    w.writerow(["job_name", "Job_ID", "workspace_id", "list_cost", "runs", "failed_runs", "failed_cost", "all_purpose_cost", "serverless_cost", "scheduled_runs"])
-    w.writerow(["orders, nightly (prod)", "111", WS, "8,120.40", "90", "4", "390.10", "0", "0", "90"])
-    w.writerow(["finance_recon", "222", WS, "6,600.00", "180", "9", "301.55", "6,600.00", "0", "180"])
-    w.writerow(["adhoc \"one off\" export", "333", WS, "1,250.00", "3", "1", "410.00", "0", "0", "0"])
-    w.writerow(["features", "444", WS, "3,110.10", "360", "0", "0", "0", "3,110.10", "360"])
+    w.writerow(["job_name", "Job_ID", "workspace_id", "list_cost", "runs", "failed_runs", "failed_cost", "all_purpose_cost", "serverless_cost", "scheduled_runs", "AP_Cluster_Cost"])
+    w.writerow(["orders, nightly (prod)", "111", WS, "8,120.40", "90", "4", "390.10", "0", "0", "90", "0"])
+    w.writerow(["finance_recon", "222", WS, "0", "180", "9", "0", "0", "0", "180", "5,940.00"])
+    w.writerow(["adhoc \"one off\" export", "333", WS, "1,250.00", "3", "1", "410.00", "0", "0", "0", "0"])
+    w.writerow(["features", "444", WS, "3,110.10", "360", "0", "0", "0", "3,110.10", "360", "0"])
 with open(os.path.join(td, "xray_query3_cpu.csv"), "w", newline="") as f:
     w = csv.writer(f)
     w.writerow(["Cluster_Name", "cluster_id", "cluster_source", "worker_node_type", "workspace_id", "hours_observed", "worker_node_hours", "avg_cpu_percent", "p95_cpu_percent", "list_cost"])
@@ -125,5 +128,6 @@ with open(os.path.join(td, "xray_query3_cpu.csv"), "w", newline="") as f:
     w.writerow(["etl-big", "0101-b", "JOB", "i3.2xlarge", WS, "300.5", "1,202.0", "55.0", "88.0", "8,120.40"])
     w.writerow(["tiny-test", "0101-c", "UI", "m5.large", WS, "0.4", "0.4", "2.0", "5.0", "3.10"])
 
+print("ap cluster est", round(ap_cluster, 2))
 print("jobs total", round(jobs_total, 2), "ap traced", round(ap_traced, 2), "sl", round(sl_traced, 2))
 print("spend total", round(sum(float(r["list_cost"] or 0) for r in spend), 2))

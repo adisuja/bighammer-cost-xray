@@ -1,5 +1,5 @@
-job_name,Job_ID,workspace_id,list_cost,runs,failed_runs,failed_cost,all_purpose_cost,serverless_cost,scheduled_runs
-"orders, nightly (prod)",111,1234567890123456,"8,120.40",90,4,390.10,0,0,90
-finance_recon,222,1234567890123456,"6,600.00",180,9,301.55,"6,600.00",0,180
-"adhoc ""one off"" export",333,1234567890123456,"1,250.00",3,1,410.00,0,0,0
-features,444,1234567890123456,"3,110.10",360,0,0,0,"3,110.10",360
+job_name,Job_ID,workspace_id,list_cost,runs,failed_runs,failed_cost,all_purpose_cost,serverless_cost,scheduled_runs,AP_Cluster_Cost
+"orders, nightly (prod)",111,1234567890123456,"8,120.40",90,4,390.10,0,0,90,0
+finance_recon,222,1234567890123456,0,180,9,0,0,0,180,"5,940.00"
+"adhoc ""one off"" export",333,1234567890123456,"1,250.00",3,1,410.00,0,0,0,0
+features,444,1234567890123456,"3,110.10",360,0,0,0,"3,110.10",360,0

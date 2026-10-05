@@ -76,15 +76,15 @@
         <div class="xr">
           <div class="xr-top"><span class="xr-dots"><i></i><i></i><i></i></span><span class="xr-title">cost-x-ray / last 90 days</span><span class="xr-tag">SAMPLE</span></div>
           <div class="xr-kpis">
-            <div><span class="xr-l">List spend</span><span class="xr-v">$396k</span><span class="xr-c m">Measured</span></div>
-            <div><span class="xr-l">Untraced</span><span class="xr-v">46%</span><span class="xr-c g">Visibility gap</span></div>
-            <div><span class="xr-l">Opportunity</span><span class="xr-v">$71k</span><span class="xr-c e">Estimated</span></div>
+            <div><span class="xr-l">List spend</span><span class="xr-v">$400k</span><span class="xr-c m">Measured</span></div>
+            <div><span class="xr-l">Untraced</span><span class="xr-v">64%</span><span class="xr-c g">Visibility gap</span></div>
+            <div><span class="xr-l">Opportunity</span><span class="xr-v">$76k</span><span class="xr-c e">Estimated</span></div>
           </div>
           <div class="xr-bars">
             <div class="xr-row"><span>ALL_PURPOSE</span><b style="--w:96%" class="hot"></b></div>
-            <div class="xr-row"><span>JOBS</span><b style="--w:90%"></b></div>
-            <div class="xr-row"><span>SQL</span><b style="--w:36%"></b></div>
-            <div class="xr-row"><span>DLT</span><b style="--w:17%"></b></div>
+            <div class="xr-row"><span>JOBS</span><b style="--w:88%"></b></div>
+            <div class="xr-row"><span>SQL</span><b style="--w:34%"></b></div>
+            <div class="xr-row"><span>DLT</span><b style="--w:16%"></b></div>
             <div class="xr-row"><span>SERVING</span><b style="--w:6%"></b></div>
           </div>
           <div class="xr-scan"></div>
@@ -166,23 +166,27 @@ ORDER BY list_cost DESC NULLS LAST</code></pre>
 
       <div class="qpanel" role="tabpanel" id="panel-q2" aria-labelledby="tab-q2" tabindex="0" hidden>
         <div class="qmeta">
-          <p><strong>What it returns:</strong> one row per job: 90-day list cost, runs, failed or timed-out runs and their cost, cost on classic All-Purpose compute, cost on serverless, and how many runs were scheduled or triggered automatically.</p>
-          <p class="qreads">Reads <code>system.billing.usage</code>, <code>system.billing.list_prices</code>, <code>system.lakeflow.job_run_timeline</code>, <code>system.lakeflow.jobs</code></p>
+          <p><strong>What it returns:</strong> one row per job: measured 90-day list cost, runs, failed or timed-out runs and their cost, serverless cost and how many runs were scheduled. Jobs on all-purpose clusters are billed to the cluster, not the job, so it also estimates that spend (<code>ap_cluster_cost</code>) from the clusters their scheduled tasks ran on.</p>
+          <p class="qreads">Reads <code>system.billing.usage</code>, <code>system.billing.list_prices</code>, <code>system.lakeflow.job_run_timeline</code>, <code>system.lakeflow.job_task_run_timeline</code>, <code>system.lakeflow.jobs</code>, <code>system.compute.clusters</code></p>
         </div>
         <div class="code">
           <div class="code-bar"><span>query-2-cost-per-job.sql</span><button type="button" class="copy" data-copy="q2">Copy query</button></div>
 <pre><code id="q2">-- BigHammer Cost X-Ray | Query 2 of 3: cost per job
 -- Read-only. Last 90 days, priced at Databricks list price.
-WITH run_cost AS (
-  SELECT
-    u.workspace_id,
-    u.usage_metadata.job_id     AS job_id,
-    u.usage_metadata.job_run_id AS run_id,
-    SUM(u.usage_quantity * COALESCE(lp.pricing.effective_list.default, lp.pricing.default)) AS list_cost,
-    SUM(IF(u.sku_name LIKE '%ALL_PURPOSE%' AND u.sku_name NOT LIKE '%SERVERLESS%',
-           u.usage_quantity * COALESCE(lp.pricing.effective_list.default, lp.pricing.default), 0)) AS all_purpose_cost,
-    SUM(IF(u.sku_name LIKE '%SERVERLESS%',
-           u.usage_quantity * COALESCE(lp.pricing.effective_list.default, lp.pricing.default), 0)) AS serverless_cost
+-- Jobs on all-purpose clusters are billed to the cluster, not the job
+-- (usage_metadata.job_id is empty for them), so ap_cluster_cost estimates
+-- that spend from the clusters their scheduled tasks ran on.
+WITH runs AS (
+  -- runs over 1 hour span several rows; take the final state of each run
+  SELECT workspace_id, job_id, run_id,
+         MAX_BY(result_state, period_end_time) FILTER (WHERE result_state IS NOT NULL) AS result_state,
+         MAX(trigger_type) AS trigger_type
+  FROM system.lakeflow.job_run_timeline
+  WHERE period_start_time &gt;= date_sub(current_date(), 90)
+  GROUP BY 1, 2, 3
+),
+priced AS (
+  SELECT u.*, u.usage_quantity * COALESCE(lp.pricing.effective_list.default, lp.pricing.default) AS cost
   FROM system.billing.usage AS u
   JOIN system.billing.list_prices AS lp
     ON  u.sku_name   = lp.sku_name
@@ -191,17 +195,75 @@ WITH run_cost AS (
     AND u.usage_start_time &gt;= lp.price_start_time
     AND (lp.price_end_time IS NULL OR u.usage_start_time &lt; lp.price_end_time)
   WHERE u.usage_date &gt;= date_sub(current_date(), 90)
-    AND u.usage_metadata.job_id IS NOT NULL
+),
+run_cost AS (
+  -- measured: usage tagged with a job run (job compute and serverless)
+  SELECT workspace_id, usage_metadata.job_id AS job_id, usage_metadata.job_run_id AS run_id,
+         SUM(cost) AS list_cost,
+         SUM(IF(sku_name LIKE '%ALL_PURPOSE%' AND sku_name NOT LIKE '%SERVERLESS%', cost, 0)) AS all_purpose_cost,
+         SUM(IF(sku_name LIKE '%SERVERLESS%', cost, 0)) AS serverless_cost
+  FROM priced
+  WHERE usage_metadata.job_id IS NOT NULL
   GROUP BY 1, 2, 3
 ),
-runs AS (
-  -- runs over 1 hour span several rows; take the final state of each run
-  SELECT workspace_id, job_id, run_id,
-         MAX_BY(result_state, period_end_time) FILTER (WHERE result_state IS NOT NULL) AS result_state,
-         MAX(trigger_type) AS trigger_type
-  FROM system.lakeflow.job_run_timeline
-  WHERE period_start_time &gt;= date_sub(current_date(), 97)
+latest_clusters AS (
+  SELECT workspace_id, cluster_id, cluster_source
+  FROM system.compute.clusters
+  QUALIFY ROW_NUMBER() OVER (PARTITION BY workspace_id, cluster_id ORDER BY change_time DESC) = 1
+),
+task_compute AS (
+  SELECT workspace_id, job_id, job_run_id, period_start_time, period_end_time,
+         explode(compute_ids) AS cluster_id
+  FROM system.lakeflow.job_task_run_timeline
+  WHERE period_start_time &gt;= date_sub(current_date(), 90)
+),
+ap_task_slices AS (
+  -- scheduled task runs on all-purpose clusters (created in the UI or API), one row per hour touched
+  SELECT tc.workspace_id, tc.job_id, tc.cluster_id,
+         explode(sequence(date_trunc('HOUR', tc.period_start_time),
+                          date_trunc('HOUR', tc.period_end_time), INTERVAL 1 HOUR)) AS usage_hour
+  FROM task_compute AS tc
+  JOIN runs AS r
+    ON tc.workspace_id = r.workspace_id AND tc.job_id = r.job_id AND tc.job_run_id = r.run_id
+  JOIN latest_clusters AS c
+    ON tc.workspace_id = c.workspace_id AND tc.cluster_id = c.cluster_id
+  WHERE r.trigger_type IN ('CRON', 'PERIODIC', 'CONTINUOUS', 'FILE_ARRIVAL', 'TABLE')
+    AND c.cluster_source IN ('UI', 'API')
+),
+ap_hours AS (
+  SELECT DISTINCT workspace_id, job_id, cluster_id, usage_hour FROM ap_task_slices
+),
+ap_cluster_hour_cost AS (
+  SELECT workspace_id, usage_metadata.cluster_id AS cluster_id,
+         date_trunc('HOUR', usage_start_time) AS usage_hour, SUM(cost) AS cost
+  FROM priced
+  WHERE sku_name LIKE '%ALL_PURPOSE%' AND sku_name NOT LIKE '%SERVERLESS%'
+    AND usage_metadata.cluster_id IS NOT NULL
   GROUP BY 1, 2, 3
+),
+ap_alloc AS (
+  -- estimated upper bound: the cluster's cost in each hour a scheduled task ran on it,
+  -- split evenly between jobs sharing that hour so no dollar is counted twice
+  SELECT h.workspace_id, h.job_id, SUM(chc.cost / h.jobs_in_hour) AS ap_cluster_cost
+  FROM (SELECT *, COUNT(*) OVER (PARTITION BY workspace_id, cluster_id, usage_hour) AS jobs_in_hour
+        FROM ap_hours) AS h
+  JOIN ap_cluster_hour_cost AS chc
+    ON h.workspace_id = chc.workspace_id AND h.cluster_id = chc.cluster_id AND h.usage_hour = chc.usage_hour
+  GROUP BY 1, 2
+),
+job_runs AS (
+  SELECT r.workspace_id, r.job_id,
+    COUNT(*) AS runs,
+    COUNT_IF(r.result_state IN ('FAILED', 'TIMED_OUT', 'ERROR')) AS failed_runs,
+    COUNT_IF(r.trigger_type IN ('CRON', 'PERIODIC', 'CONTINUOUS', 'FILE_ARRIVAL', 'TABLE')) AS scheduled_runs,
+    SUM(COALESCE(rc.list_cost, 0)) AS list_cost,
+    SUM(IF(r.result_state IN ('FAILED', 'TIMED_OUT', 'ERROR'), COALESCE(rc.list_cost, 0), 0)) AS failed_cost,
+    SUM(COALESCE(rc.all_purpose_cost, 0)) AS all_purpose_cost,
+    SUM(COALESCE(rc.serverless_cost, 0))  AS serverless_cost
+  FROM runs AS r
+  LEFT JOIN run_cost AS rc
+    ON r.workspace_id = rc.workspace_id AND r.job_id = rc.job_id AND r.run_id = rc.run_id
+  GROUP BY 1, 2
 ),
 jobs AS (
   -- system.lakeflow.jobs is slowly changing: keep the latest row per job
@@ -210,23 +272,22 @@ jobs AS (
   QUALIFY ROW_NUMBER() OVER (PARTITION BY workspace_id, job_id ORDER BY change_time DESC) = 1
 )
 SELECT
-  rc.workspace_id,
-  rc.job_id,
-  MAX(COALESCE(j.name, CONCAT('job ', rc.job_id))) AS job_name,
-  COUNT(DISTINCT rc.run_id) AS runs,
-  COUNT(DISTINCT IF(r.result_state IN ('FAILED', 'TIMED_OUT', 'ERROR'), rc.run_id, NULL)) AS failed_runs,
-  COUNT(DISTINCT IF(r.trigger_type IN ('CRON', 'PERIODIC', 'CONTINUOUS', 'FILE_ARRIVAL', 'TABLE'), rc.run_id, NULL)) AS scheduled_runs,
-  ROUND(SUM(rc.list_cost), 2) AS list_cost,
-  ROUND(SUM(IF(r.result_state IN ('FAILED', 'TIMED_OUT', 'ERROR'), rc.list_cost, 0)), 2) AS failed_cost,
-  ROUND(SUM(rc.all_purpose_cost), 2) AS all_purpose_cost,
-  ROUND(SUM(rc.serverless_cost), 2)  AS serverless_cost
-FROM run_cost AS rc
-LEFT JOIN runs AS r
-  ON rc.workspace_id = r.workspace_id AND rc.job_id = r.job_id AND rc.run_id = r.run_id
-LEFT JOIN jobs AS j
-  ON rc.workspace_id = j.workspace_id AND rc.job_id = j.job_id
-GROUP BY 1, 2
-ORDER BY list_cost DESC
+  jr.workspace_id,
+  jr.job_id,
+  COALESCE(j.name, CONCAT('job ', jr.job_id)) AS job_name,
+  jr.runs,
+  jr.failed_runs,
+  jr.scheduled_runs,
+  ROUND(jr.list_cost, 2)        AS list_cost,
+  ROUND(jr.failed_cost, 2)      AS failed_cost,
+  ROUND(jr.all_purpose_cost, 2) AS all_purpose_cost,
+  ROUND(jr.serverless_cost, 2)  AS serverless_cost,
+  ROUND(COALESCE(a.ap_cluster_cost, 0), 2) AS ap_cluster_cost
+FROM job_runs AS jr
+LEFT JOIN ap_alloc AS a ON jr.workspace_id = a.workspace_id AND jr.job_id = a.job_id
+LEFT JOIN jobs AS j     ON jr.workspace_id = j.workspace_id AND jr.job_id = j.job_id
+WHERE jr.list_cost &gt; 0 OR a.ap_cluster_cost &gt; 0
+ORDER BY jr.list_cost + COALESCE(a.ap_cluster_cost, 0) DESC
 LIMIT 1000</code></pre>
         </div>
       </div>
