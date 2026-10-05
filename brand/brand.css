@@ -1,0 +1,96 @@
+/* BigHammer.ai visual system for the webinar nurture sequence.
+   Source of truth: Figma "BigHammer Webiste_Glenn" (TD9z8ciTPCECHOm8FffX6c) as implemented on bighammer.ai,
+   computed styles captured 2026-10-05. Headlines Axiforma 800 uppercase, body Poppins. */
+@font-face{font-family:Axiforma;src:url(fonts/axiforma-400.woff2) format("woff2");font-weight:400}
+@font-face{font-family:Axiforma;src:url(fonts/axiforma-500.woff2) format("woff2");font-weight:500}
+@font-face{font-family:Axiforma;src:url(fonts/axiforma-600.woff2) format("woff2");font-weight:600}
+@font-face{font-family:Axiforma;src:url(fonts/axiforma-700.woff2) format("woff2");font-weight:700}
+@font-face{font-family:Axiforma;src:url(fonts/axiforma-800.woff2) format("woff2");font-weight:800}
+@font-face{font-family:Poppins;src:url(fonts/poppins-400.woff2) format("woff2");font-weight:400}
+@font-face{font-family:Poppins;src:url(fonts/poppins-500.woff2) format("woff2");font-weight:500}
+@font-face{font-family:Poppins;src:url(fonts/poppins-600.woff2) format("woff2");font-weight:600}
+@font-face{font-family:Poppins;src:url(fonts/poppins-700.woff2) format("woff2");font-weight:700}
+@font-face{font-family:Poppins;src:url(fonts/poppins-800.woff2) format("woff2");font-weight:800}
+
+:root{
+  /* core (bighammer.ai computed) */
+  --ink:#141414;          /* body text, dark buttons */
+  --night:#0D0D14;        /* dark sections */
+  --night-2:#16161F;
+  --paper:#FFFFFF;
+  --violet:#5600EF;       /* primary accent: highlighted headline word, key shapes */
+  --magenta:#FE0079;      /* brand accent: eyebrows, brand name, single hot callout */
+  --yellow:#FCFF00;       /* CTA buttons, marker highlight */
+  --neon:#00FF89;         /* positive on dark */
+  --green:#00A85A;        /* savings / measured-good on light (only for savings) */
+  --red:#E2231A;          /* waste / failure */
+  --orange:#FF6A36;       /* warning, cost pain */
+  --sky:#54BAEF;          /* neutral data series */
+  --lime:#B7FF6E;
+  /* lavender family (hero gradients, cards) */
+  --lav-50:#F7F3FF; --lav-100:#EFE7FF; --lav-200:#DCCBFF; --lav-300:#BA99FF; --lav-500:#8A5CFF;
+  --grey-50:#F6F6F8; --grey-100:#F2F2F6; --grey-200:#E4E4EA; --grey-400:#9A9AAE; --grey-600:#55556A;
+  --radius:18px; --radius-sm:12px;
+  --shadow:0 18px 40px -18px rgba(54,0,160,.28), 0 2px 6px rgba(20,20,20,.06);
+  --font-display:Axiforma, Poppins, sans-serif;
+  --font-body:Poppins, sans-serif;
+  --font-mono:"SF Mono", ui-monospace, Menlo, monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#fff}
+body{font-family:var(--font-body);color:var(--ink);-webkit-font-smoothing:antialiased}
+
+/* ---- email hero canvas: 1200px wide (displays at 600px in email, 2x retina) ---- */
+.canvas{position:relative;width:1200px;overflow:hidden;background:var(--paper);padding:64px 72px 0}
+.canvas.light{background:
+  radial-gradient(70% 55% at 85% 0%, rgba(186,153,255,.45), transparent 70%),
+  radial-gradient(60% 50% at 0% 100%, rgba(254,0,121,.10), transparent 70%),
+  linear-gradient(180deg,#F4EEFF 0%,#FFFFFF 62%)}
+.canvas.dark{background:
+  radial-gradient(130% 70% at 50% 0%, rgba(86,0,239,.38), transparent 60%),
+  linear-gradient(180deg,#16161F,#0D0D14);color:#fff}
+.canvas .grid-bg{position:absolute;inset:0;pointer-events:none;
+  background-image:linear-gradient(rgba(86,0,239,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(86,0,239,.06) 1px,transparent 1px);
+  background-size:40px 40px;mask-image:linear-gradient(180deg,#000 0%,transparent 75%)}
+.canvas.dark .grid-bg{background-image:linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px)}
+.canvas > *{position:relative}
+
+/* header row: eyebrow left, logo right */
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:26px}
+.eyebrow{font-family:var(--font-display);font-weight:700;font-size:22px;letter-spacing:.14em;text-transform:uppercase;color:var(--magenta)}
+.eyebrow .sep{color:var(--lav-300);margin:0 10px}
+.logo{height:38px}
+.dark .eyebrow{color:#FF4FA3}
+
+h1.headline{font-family:var(--font-display);font-weight:800;text-transform:uppercase;font-size:58px;line-height:1.04;letter-spacing:-.01em;color:var(--ink);max-width:1000px}
+h1.headline em{font-style:normal;color:var(--violet)}
+.dark h1.headline{color:#fff}
+.dark h1.headline em{color:var(--lav-300)}
+.sub{font-size:27px;line-height:1.45;color:var(--grey-600);margin-top:16px;max-width:960px}
+.dark .sub{color:rgba(255,255,255,.72)}
+.mark{background:linear-gradient(transparent 58%, var(--yellow) 58%);padding:0 4px}
+
+/* cards */
+.card{background:#fff;border:1px solid var(--grey-200);border-radius:var(--radius);box-shadow:var(--shadow)}
+.card.lav{background:var(--lav-50);border-color:var(--lav-200)}
+.dark .card{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.12);box-shadow:none}
+.chip{display:inline-flex;align-items:center;gap:8px;font-family:var(--font-display);font-weight:700;font-size:18px;letter-spacing:.08em;text-transform:uppercase;padding:8px 16px;border-radius:999px;background:var(--lav-100);color:var(--violet)}
+.chip.measured{background:#E3F8EE;color:#00804A}
+.chip.estimated{background:#FFF0E8;color:#C2410C}
+.chip.waste{background:#FDE7E6;color:var(--red)}
+.chip.dark{background:var(--ink);color:#fff}
+.num{font-family:var(--font-display);font-weight:800;letter-spacing:-.02em}
+.mono{font-family:var(--font-mono)}
+.label{font-size:22px;color:var(--grey-600)}
+
+/* footer strip */
+.foot{display:flex;justify-content:space-between;align-items:center;margin:40px -72px 0;padding:22px 72px;border-top:1px solid var(--grey-200);font-size:21px;color:var(--grey-600);background:rgba(255,255,255,.7)}
+.foot b{color:var(--ink);font-weight:600}
+.dark .foot{border-color:rgba(255,255,255,.1);background:rgba(0,0,0,.25);color:rgba(255,255,255,.6)}
+.dark .foot b{color:#fff}
+.foot .src{font-family:var(--font-mono);font-size:18px;color:var(--violet)}
+.dark .foot .src{color:var(--lav-300)}
+.illustrative{font-size:18px;letter-spacing:.06em;text-transform:uppercase;color:var(--grey-400)}
+
+.btn{display:inline-block;font-family:var(--font-body);font-weight:600;font-size:20px;letter-spacing:.04em;text-transform:uppercase;padding:18px 30px;border-radius:6px;background:var(--yellow);color:var(--ink)}
+.btn.dark{background:var(--ink);color:#fff}

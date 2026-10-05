@@ -1,0 +1,4 @@
+Cluster_Name,cluster_id,cluster_source,worker_node_type,workspace_id,hours_observed,worker_node_hours,avg_cpu_percent,p95_cpu_percent,list_cost
+finance-recon-ap,0101-a,UI,m5.4xlarge,1234567890123456,412.0,"1,648.0",11.2,26.5,"6,600.00"
+etl-big,0101-b,JOB,i3.2xlarge,1234567890123456,300.5,"1,202.0",55.0,88.0,"8,120.40"
+tiny-test,0101-c,UI,m5.large,1234567890123456,0.4,0.4,2.0,5.0,3.10

@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en-GB"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../brand/brand.css">
+<style>
+html,body{margin:0;width:1200px;height:630px;overflow:hidden}
+.og{position:relative;width:1200px;height:630px;overflow:hidden;padding:56px 64px;background:
+  radial-gradient(60% 70% at 92% 0%,rgba(186,153,255,.55),transparent 70%),
+  radial-gradient(45% 50% at 0% 100%,rgba(254,0,121,.09),transparent 70%),
+  linear-gradient(180deg,#F4EEFF 0%,#FFFFFF 80%)}
+.grid{position:absolute;inset:0;background-image:linear-gradient(rgba(86,0,239,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(86,0,239,.06) 1px,transparent 1px);background-size:40px 40px;-webkit-mask-image:linear-gradient(180deg,#000,transparent 85%)}
+.og>*{position:relative}
+.row{display:flex;justify-content:space-between;align-items:center}
+.ey{font-family:var(--font-display);font-weight:700;font-size:18px;letter-spacing:.16em;text-transform:uppercase;color:var(--magenta)}
+.logo{height:32px}
+h1{font-family:var(--font-display);font-weight:800;text-transform:uppercase;font-size:64px;line-height:1.0;letter-spacing:-.01em;margin-top:38px;max-width:620px}
+h1 em{font-style:normal;color:var(--violet)}
+p.s{font-size:22px;line-height:1.45;color:#3A3A4A;margin-top:22px;max-width:560px}
+.trust{position:absolute;left:64px;bottom:52px;display:flex;gap:12px;align-items:center;background:#fff;border:1px solid var(--lav-200);border-radius:12px;padding:12px 18px;font-size:18px;color:#141414;font-weight:500}
+.trust i{width:12px;height:12px;border-radius:50%;background:var(--green)}
+.xr{position:absolute;right:56px;top:150px;width:440px;background:linear-gradient(180deg,#1A1A26,#0D0D14);border-radius:22px;padding:22px 24px 26px;color:#fff;box-shadow:0 40px 80px -30px rgba(54,0,160,.6);transform:perspective(1400px) rotateY(-8deg) rotateX(3deg)}
+.top{display:flex;align-items:center;gap:10px;font-family:var(--font-mono);font-size:13px;color:rgba(255,255,255,.55);margin-bottom:18px}
+.tag{margin-left:auto;font-family:var(--font-display);font-weight:700;font-size:11px;letter-spacing:.14em;background:var(--magenta);padding:4px 8px 3px;border-radius:4px;color:#fff}
+.k{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:18px}
+.k div{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.09);border-radius:12px;padding:12px 14px}
+.k span{display:block;font-size:12px;color:rgba(255,255,255,.6)}
+.k b{display:block;font-family:var(--font-display);font-weight:800;font-size:30px;letter-spacing:-.02em;margin:2px 0 6px}
+.c{font-style:normal;font-family:var(--font-display);font-weight:700;font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:3px 7px 2px;border-radius:999px;display:inline-block}
+.m{background:rgba(0,255,137,.14);color:#00FF89}.e{background:rgba(255,106,54,.18);color:#FF9A72}
+.bars{display:grid;gap:10px}
+.r{display:grid;grid-template-columns:110px 1fr;gap:10px;align-items:center;font-family:var(--font-mono);font-size:12px;color:rgba(255,255,255,.6)}
+.r b{height:13px;border-radius:4px;background:linear-gradient(90deg,#5600EF,#8A5CFF)}
+.r b.h{background:linear-gradient(90deg,#5600EF,#FE0079)}
+.scan{position:absolute;left:0;right:0;top:120px;height:3px;background:#00FF89;box-shadow:0 0 22px 6px rgba(0,255,137,.45);opacity:.85}
+</style></head>
+<body><div class="og"><div class="grid"></div>
+<div class="row"><span class="ey">Free tool / Databricks Cost X-Ray</span><img class="logo" src="../brand/bighammer-logo-dark.svg" alt=""></div>
+<h1>X-ray your Databricks <em>spend</em> in minutes</h1>
+<p class="s">Three read-only queries. Three CSVs. An instant 90-day cost report with every figure labelled measured or estimated.</p>
+<div class="trust"><i></i>Runs in your browser. Nothing is uploaded.</div>
+<div class="xr"><div class="top">cost-x-ray / last 90 days<span class="tag">SAMPLE</span></div>
+<div class="k"><div><span>List spend</span><b>$396k</b><em class="c m">Measured</em></div><div><span>Opportunity</span><b>$71k</b><em class="c e">Estimated</em></div></div>
+<div class="bars"><div class="r"><span>ALL_PURPOSE</span><b class="h" style="width:100%"></b></div><div class="r"><span>JOBS</span><b style="width:94%"></b></div><div class="r"><span>SQL</span><b style="width:36%"></b></div><div class="r"><span>DLT</span><b style="width:17%"></b></div><div class="r"><span>SERVING</span><b style="width:6%"></b></div></div>
+<div class="scan"></div></div>
+</div></body></html>

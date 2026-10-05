@@ -1,0 +1,394 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Databricks Cost X-Ray | Free 90-day cost report | BigHammer.ai</title>
+<meta name="description" content="Run three read-only SQL queries on your Databricks system tables, drop the CSVs in, and get an instant 90-day cost report. Runs entirely in your browser: nothing is uploaded.">
+<link rel="canonical" href="https://adisuja.github.io/bighammer-cost-xray/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="BigHammer.ai">
+<meta property="og:title" content="Databricks Cost X-Ray: a free 90-day cost report">
+<meta property="og:description" content="Three read-only queries, three CSVs, one report. See spend by product, failed-run cost, scheduled jobs on All-Purpose compute and under-used clusters. Nothing leaves your browser.">
+<meta property="og:url" content="https://adisuja.github.io/bighammer-cost-xray/">
+<meta property="og:image" content="https://adisuja.github.io/bighammer-cost-xray/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Databricks Cost X-Ray by BigHammer.ai: a free 90-day cost report that runs in your browser">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Databricks Cost X-Ray: a free 90-day cost report">
+<meta name="twitter:description" content="Three read-only queries, three CSVs, one report. Nothing leaves your browser.">
+<meta name="twitter:image" content="https://adisuja.github.io/bighammer-cost-xray/og.png">
+<meta name="theme-color" content="#5600EF">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preload" href="brand/fonts/axiforma-800.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="brand/fonts/poppins-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="brand/brand.css">
+<link rel="stylesheet" href="assets/app.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<div class="sample-ribbon" id="sampleRibbon" hidden role="status">
+  <span class="sr-dot" aria-hidden="true"></span> SAMPLE DATA <span class="sr-sep" aria-hidden="true">/</span> <span class="sr-note">synthetic workloads, not a real account</span>
+  <button type="button" class="sr-btn" data-action="reset">Use my own data</button>
+</div>
+
+<header class="nav" id="top">
+  <div class="wrap nav-in">
+    <a class="brand" href="./" aria-label="Databricks Cost X-Ray home">
+      <img src="brand/bighammer-logo-dark.svg" alt="BigHammer.ai" width="150" height="28">
+      <span class="brand-tool">Cost X-Ray</span>
+    </a>
+    <nav class="nav-links" aria-label="Page sections">
+      <a href="#how">How it works</a>
+      <a href="#queries">Queries</a>
+      <a href="#privacy">Privacy</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+    <a class="btn btn-y btn-sm" href="https://bighammer.ai/book-demo/?utm_source=cost-xray&amp;utm_medium=lead-magnet&amp;utm_campaign=dbx-webinar-nurture-2026&amp;utm_content=nav-book-call">Book a call</a>
+  </div>
+</header>
+
+<main id="main">
+<!-- ================= LANDING ================= -->
+<div id="landing">
+  <section class="hero">
+    <div class="grid-bg" aria-hidden="true"></div>
+    <div class="wrap hero-in">
+      <div class="hero-copy">
+        <p class="eyebrow">Free tool <span class="dot" aria-hidden="true">/</span> Databricks Cost X-Ray</p>
+        <h1 class="h1">X-ray your Databricks <em>spend</em> before your renewal</h1>
+        <p class="lede">Run three read-only queries on your system tables, drop the CSVs here, and get a 90-day cost report you can take into the renewal conversation. Every figure is labelled <span class="chip chip-m">Measured</span> or <span class="chip chip-e">Estimated</span>.</p>
+        <div class="hero-ctas">
+          <button type="button" class="btn btn-y" data-action="sample">Try it with sample data</button>
+          <a class="btn btn-ghost" href="#queries">Start with my data</a>
+        </div>
+        <div class="trust" id="trustline">
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M12 2 4 5v6c0 5 3.4 9.4 8 11 4.6-1.6 8-6 8-11V5l-8-3Z" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="m8.5 12 2.5 2.5 4.5-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <p><strong>Runs entirely in your browser.</strong> Your CSVs are never uploaded. There is no server, no analytics and no third-party script on this page.</p>
+        </div>
+      </div>
+
+      <div class="hero-visual" aria-hidden="true">
+        <div class="xr">
+          <div class="xr-top"><span class="xr-dots"><i></i><i></i><i></i></span><span class="xr-title">cost-x-ray / last 90 days</span><span class="xr-tag">SAMPLE</span></div>
+          <div class="xr-kpis">
+            <div><span class="xr-l">List spend</span><span class="xr-v">$396k</span><span class="xr-c m">Measured</span></div>
+            <div><span class="xr-l">Untraced</span><span class="xr-v">46%</span><span class="xr-c g">Visibility gap</span></div>
+            <div><span class="xr-l">Opportunity</span><span class="xr-v">$71k</span><span class="xr-c e">Estimated</span></div>
+          </div>
+          <div class="xr-bars">
+            <div class="xr-row"><span>ALL_PURPOSE</span><b style="--w:96%" class="hot"></b></div>
+            <div class="xr-row"><span>JOBS</span><b style="--w:90%"></b></div>
+            <div class="xr-row"><span>SQL</span><b style="--w:36%"></b></div>
+            <div class="xr-row"><span>DLT</span><b style="--w:17%"></b></div>
+            <div class="xr-row"><span>SERVING</span><b style="--w:6%"></b></div>
+          </div>
+          <div class="xr-scan"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="how">
+    <div class="wrap">
+      <p class="eyebrow">How it works</p>
+      <h2 class="h2">Three queries. Three files. <em>One</em> report.</h2>
+      <ol class="steps">
+        <li class="card step">
+          <span class="step-n">01</span>
+          <h3>Run the queries</h3>
+          <p>Paste each query into the Databricks SQL editor or a notebook. They only <code>SELECT</code> from system tables and change nothing.</p>
+        </li>
+        <li class="card step">
+          <span class="step-n">02</span>
+          <h3>Download as CSV</h3>
+          <p>Use the download button on each result. You can open the files first and check exactly what they contain: aggregated costs, no row-level data.</p>
+        </li>
+        <li class="card step">
+          <span class="step-n">03</span>
+          <h3>Drop them here</h3>
+          <p>Drop all three at once. The tool works out which file is which, parses them in this tab and draws the report. Any subset works.</p>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="sec sec-tint" id="queries">
+    <div class="wrap">
+      <div class="sec-head">
+        <div>
+          <p class="eyebrow">Step 1</p>
+          <h2 class="h2">Copy the <em>read-only</em> queries</h2>
+        </div>
+        <p class="sec-note">Needs Unity Catalog with system tables enabled, and <code>SELECT</code> on <code>system.billing</code>, <code>system.lakeflow</code> and <code>system.compute</code>. An account admin can grant these. Costs are calculated at Databricks list price for the last 90 days.</p>
+      </div>
+
+      <div class="qtabs" role="tablist" aria-label="Queries">
+        <button type="button" role="tab" id="tab-q1" aria-controls="panel-q1" aria-selected="true"><span class="qn">1</span> Spend summary</button>
+        <button type="button" role="tab" id="tab-q2" aria-controls="panel-q2" aria-selected="false" tabindex="-1"><span class="qn">2</span> Cost per job</button>
+        <button type="button" role="tab" id="tab-q3" aria-controls="panel-q3" aria-selected="false" tabindex="-1"><span class="qn">3</span> Cluster CPU</button>
+      </div>
+
+      <div class="qpanel" role="tabpanel" id="panel-q1" aria-labelledby="tab-q1" tabindex="0">
+        <div class="qmeta">
+          <p><strong>What it returns:</strong> 90-day list cost and DBUs by billing product and SKU, split by whether the usage is traced to a job run and whether a list price matched.</p>
+          <p class="qreads">Reads <code>system.billing.usage</code>, <code>system.billing.list_prices</code></p>
+        </div>
+        <div class="code">
+          <div class="code-bar"><span>query-1-spend-summary.sql</span><button type="button" class="copy" data-copy="q1">Copy query</button></div>
+<pre><code id="q1">-- BigHammer Cost X-Ray | Query 1 of 3: spend summary
+-- Read-only. Last 90 days, priced at Databricks list price.
+SELECT
+  u.billing_origin_product,
+  u.sku_name,
+  u.usage_metadata.job_run_id IS NOT NULL AS traced_to_job,
+  lp.sku_name IS NOT NULL                 AS priced,
+  MAX(lp.currency_code)                   AS currency_code,
+  ROUND(SUM(IF(u.usage_unit = 'DBU', u.usage_quantity, 0)), 2) AS dbus,
+  ROUND(SUM(u.usage_quantity *
+        COALESCE(lp.pricing.effective_list.default, lp.pricing.default)), 2) AS list_cost
+FROM system.billing.usage AS u
+LEFT JOIN system.billing.list_prices AS lp
+  ON  u.sku_name   = lp.sku_name
+  AND u.cloud      = lp.cloud
+  AND u.usage_unit = lp.usage_unit
+  AND u.usage_start_time &gt;= lp.price_start_time
+  AND (lp.price_end_time IS NULL OR u.usage_start_time &lt; lp.price_end_time)
+WHERE u.usage_date &gt;= date_sub(current_date(), 90)
+GROUP BY 1, 2, 3, 4
+ORDER BY list_cost DESC NULLS LAST</code></pre>
+        </div>
+      </div>
+
+      <div class="qpanel" role="tabpanel" id="panel-q2" aria-labelledby="tab-q2" tabindex="0" hidden>
+        <div class="qmeta">
+          <p><strong>What it returns:</strong> one row per job: 90-day list cost, runs, failed or timed-out runs and their cost, cost on classic All-Purpose compute, cost on serverless, and how many runs were scheduled or triggered automatically.</p>
+          <p class="qreads">Reads <code>system.billing.usage</code>, <code>system.billing.list_prices</code>, <code>system.lakeflow.job_run_timeline</code>, <code>system.lakeflow.jobs</code></p>
+        </div>
+        <div class="code">
+          <div class="code-bar"><span>query-2-cost-per-job.sql</span><button type="button" class="copy" data-copy="q2">Copy query</button></div>
+<pre><code id="q2">-- BigHammer Cost X-Ray | Query 2 of 3: cost per job
+-- Read-only. Last 90 days, priced at Databricks list price.
+WITH run_cost AS (
+  SELECT
+    u.workspace_id,
+    u.usage_metadata.job_id     AS job_id,
+    u.usage_metadata.job_run_id AS run_id,
+    SUM(u.usage_quantity * COALESCE(lp.pricing.effective_list.default, lp.pricing.default)) AS list_cost,
+    SUM(IF(u.sku_name LIKE '%ALL_PURPOSE%' AND u.sku_name NOT LIKE '%SERVERLESS%',
+           u.usage_quantity * COALESCE(lp.pricing.effective_list.default, lp.pricing.default), 0)) AS all_purpose_cost,
+    SUM(IF(u.sku_name LIKE '%SERVERLESS%',
+           u.usage_quantity * COALESCE(lp.pricing.effective_list.default, lp.pricing.default), 0)) AS serverless_cost
+  FROM system.billing.usage AS u
+  JOIN system.billing.list_prices AS lp
+    ON  u.sku_name   = lp.sku_name
+    AND u.cloud      = lp.cloud
+    AND u.usage_unit = lp.usage_unit
+    AND u.usage_start_time &gt;= lp.price_start_time
+    AND (lp.price_end_time IS NULL OR u.usage_start_time &lt; lp.price_end_time)
+  WHERE u.usage_date &gt;= date_sub(current_date(), 90)
+    AND u.usage_metadata.job_id IS NOT NULL
+  GROUP BY 1, 2, 3
+),
+runs AS (
+  -- runs over 1 hour span several rows; result_state is only set on the last row
+  SELECT workspace_id, job_id, run_id,
+         MAX(result_state) AS result_state,
+         MAX(trigger_type) AS trigger_type
+  FROM system.lakeflow.job_run_timeline
+  WHERE period_start_time &gt;= date_sub(current_date(), 97)
+  GROUP BY 1, 2, 3
+),
+jobs AS (
+  -- system.lakeflow.jobs is slowly changing: keep the latest row per job
+  SELECT workspace_id, job_id, name
+  FROM system.lakeflow.jobs
+  QUALIFY ROW_NUMBER() OVER (PARTITION BY workspace_id, job_id ORDER BY change_time DESC) = 1
+)
+SELECT
+  rc.workspace_id,
+  rc.job_id,
+  MAX(COALESCE(j.name, CONCAT('job ', rc.job_id))) AS job_name,
+  COUNT(DISTINCT rc.run_id) AS runs,
+  COUNT(DISTINCT IF(r.result_state IN ('FAILED', 'TIMED_OUT', 'ERROR'), rc.run_id, NULL)) AS failed_runs,
+  COUNT(DISTINCT IF(r.trigger_type IN ('CRON', 'PERIODIC', 'CONTINUOUS', 'FILE_ARRIVAL', 'TABLE'), rc.run_id, NULL)) AS scheduled_runs,
+  ROUND(SUM(rc.list_cost), 2) AS list_cost,
+  ROUND(SUM(IF(r.result_state IN ('FAILED', 'TIMED_OUT', 'ERROR'), rc.list_cost, 0)), 2) AS failed_cost,
+  ROUND(SUM(rc.all_purpose_cost), 2) AS all_purpose_cost,
+  ROUND(SUM(rc.serverless_cost), 2)  AS serverless_cost
+FROM run_cost AS rc
+LEFT JOIN runs AS r
+  ON rc.workspace_id = r.workspace_id AND rc.job_id = r.job_id AND rc.run_id = r.run_id
+LEFT JOIN jobs AS j
+  ON rc.workspace_id = j.workspace_id AND rc.job_id = j.job_id
+GROUP BY 1, 2
+ORDER BY list_cost DESC
+LIMIT 1000</code></pre>
+        </div>
+      </div>
+
+      <div class="qpanel" role="tabpanel" id="panel-q3" aria-labelledby="tab-q3" tabindex="0" hidden>
+        <div class="qmeta">
+          <p><strong>What it returns:</strong> one row per cluster with at least 30 minutes of worker activity: hours observed, average and 95th percentile worker CPU (user plus system), cluster name, source and 90-day list cost.</p>
+          <p class="qreads">Reads <code>system.compute.node_timeline</code>, <code>system.compute.clusters</code>, <code>system.billing.usage</code>, <code>system.billing.list_prices</code>. Scans per-minute node data, so a small SQL warehouse may take a minute or two.</p>
+        </div>
+        <div class="code">
+          <div class="code-bar"><span>query-3-cluster-cpu.sql</span><button type="button" class="copy" data-copy="q3">Copy query</button></div>
+<pre><code id="q3">-- BigHammer Cost X-Ray | Query 3 of 3: cluster CPU utilisation
+-- Read-only. Worker nodes only, last 90 days, per-minute samples.
+WITH cpu AS (
+  SELECT
+    workspace_id,
+    cluster_id,
+    COUNT(DISTINCT date_trunc('MINUTE', start_time)) / 60.0 AS hours_observed,
+    COUNT(*) / 60.0                                           AS worker_node_hours,
+    AVG(cpu_user_percent + cpu_system_percent)                AS avg_cpu_percent,
+    PERCENTILE_APPROX(cpu_user_percent + cpu_system_percent, 0.95) AS p95_cpu_percent
+  FROM system.compute.node_timeline
+  WHERE start_time &gt;= date_sub(current_date(), 90)
+    AND driver = false
+  GROUP BY 1, 2
+  HAVING COUNT(DISTINCT date_trunc('MINUTE', start_time)) &gt;= 30
+),
+clusters AS (
+  -- system.compute.clusters is slowly changing: keep the latest row per cluster
+  SELECT workspace_id, cluster_id, cluster_name, cluster_source, worker_node_type
+  FROM system.compute.clusters
+  QUALIFY ROW_NUMBER() OVER (PARTITION BY workspace_id, cluster_id ORDER BY change_time DESC) = 1
+),
+cluster_cost AS (
+  SELECT
+    u.workspace_id,
+    u.usage_metadata.cluster_id AS cluster_id,
+    SUM(u.usage_quantity * COALESCE(lp.pricing.effective_list.default, lp.pricing.default)) AS list_cost
+  FROM system.billing.usage AS u
+  JOIN system.billing.list_prices AS lp
+    ON  u.sku_name   = lp.sku_name
+    AND u.cloud      = lp.cloud
+    AND u.usage_unit = lp.usage_unit
+    AND u.usage_start_time &gt;= lp.price_start_time
+    AND (lp.price_end_time IS NULL OR u.usage_start_time &lt; lp.price_end_time)
+  WHERE u.usage_date &gt;= date_sub(current_date(), 90)
+    AND u.usage_metadata.cluster_id IS NOT NULL
+  GROUP BY 1, 2
+)
+SELECT
+  c.workspace_id,
+  c.cluster_id,
+  cl.cluster_name,
+  cl.cluster_source,
+  cl.worker_node_type,
+  ROUND(c.hours_observed, 1)    AS hours_observed,
+  ROUND(c.worker_node_hours, 1) AS worker_node_hours,
+  ROUND(c.avg_cpu_percent, 1)   AS avg_cpu_percent,
+  ROUND(c.p95_cpu_percent, 1)   AS p95_cpu_percent,
+  ROUND(COALESCE(cc.list_cost, 0), 2) AS list_cost
+FROM cpu AS c
+LEFT JOIN clusters AS cl
+  ON c.workspace_id = cl.workspace_id AND c.cluster_id = cl.cluster_id
+LEFT JOIN cluster_cost AS cc
+  ON c.workspace_id = cc.workspace_id AND c.cluster_id = cc.cluster_id
+ORDER BY list_cost DESC
+LIMIT 1000</code></pre>
+        </div>
+      </div>
+      <p class="tip"><strong>Downloading:</strong> in the SQL editor use the download icon on the results and choose CSV. In a notebook, use the table's download menu and pick the full results. Keep the column names as they are; column order does not matter.</p>
+    </div>
+  </section>
+
+  <section class="sec" id="drop">
+    <div class="wrap">
+      <div class="sec-head">
+        <div>
+          <p class="eyebrow">Step 2</p>
+          <h2 class="h2">Drop your <em>CSVs</em></h2>
+        </div>
+        <p class="sec-note">Drop all three together or one at a time. Files are read with your browser's File API and stay in this tab. Close the tab and they are gone.</p>
+      </div>
+
+      <div class="dropzone" id="dropzone">
+        <input type="file" id="fileInput" accept=".csv,text/csv,.txt" multiple class="vh">
+        <label for="fileInput" class="dz-in" id="dzLabel">
+          <svg viewBox="0 0 48 48" width="44" height="44" aria-hidden="true"><rect x="9" y="5" width="30" height="38" rx="5" fill="#EFE7FF"/><path d="M24 31V17m0 0-6 6m6-6 6 6" fill="none" stroke="#5600EF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span class="dz-title">Drop your CSV files here</span>
+          <span class="dz-sub">or <u>browse your computer</u>. Processed locally, never uploaded.</span>
+        </label>
+      </div>
+
+      <ul class="slots" id="slots">
+        <li class="slot" data-kind="spend"><span class="slot-n">1</span><div><b>Spend summary</b><span class="slot-s">Waiting for file</span></div></li>
+        <li class="slot" data-kind="jobs"><span class="slot-n">2</span><div><b>Cost per job</b><span class="slot-s">Waiting for file</span></div></li>
+        <li class="slot" data-kind="cpu"><span class="slot-n">3</span><div><b>Cluster CPU</b><span class="slot-s">Waiting for file</span></div></li>
+      </ul>
+      <div class="msgs" id="msgs" role="alert" aria-live="assertive"></div>
+      <div class="drop-actions">
+        <button type="button" class="btn btn-y" id="buildBtn" data-action="build" disabled>Build my X-Ray</button>
+        <button type="button" class="btn btn-link" data-action="sample">or try it with sample data</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec sec-dark" id="privacy">
+    <div class="grid-bg dark" aria-hidden="true"></div>
+    <div class="wrap priv">
+      <div>
+        <p class="eyebrow">Built for security review</p>
+        <h2 class="h2">Your cost data <em>stays</em> on your machine</h2>
+        <p class="lede">We built this so a security team can approve it in minutes. The page is static HTML, CSS and JavaScript served from GitHub Pages. It talks to no other website, and nothing you drop into it is ever sent anywhere.</p>
+      </div>
+      <ul class="priv-list">
+        <li><b>No upload, no server.</b> CSVs are parsed with JavaScript inside this browser tab.</li>
+        <li><b>No tracking.</b> No analytics, cookies, fonts or scripts from third parties. Fonts and code are served with the page.</li>
+        <li><b>Aggregated inputs.</b> The queries return totals per product, job and cluster. No user names, query text or table data.</li>
+        <li><b>Check it yourself.</b> Open your browser's developer tools, watch the Network tab while you drop a file, or load the page and switch off Wi-Fi first. The source is public on GitHub.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="sec" id="faq">
+    <div class="wrap faq">
+      <div>
+        <p class="eyebrow">FAQ</p>
+        <h2 class="h2">Good <em>questions</em></h2>
+      </div>
+      <div class="faq-list">
+        <details><summary>Why list price and not what we actually pay?</summary><p>System tables expose list prices, not your negotiated rates. List price is a consistent baseline for comparing workloads. If you have a committed-use discount, your invoice will be lower, but the proportions in this report still hold.</p></details>
+        <details><summary>Does it include cloud VM costs?</summary><p>No. Databricks system tables record DBUs, not the EC2, Azure VM or GCE charges for classic compute. On classic clusters the cloud bill can be as large as the DBU bill, so the true cost of an idle cluster is usually higher than shown here.</p></details>
+        <details><summary>What does "untraced" mean?</summary><p>Usage with no job run attached: interactive notebooks, SQL warehouses, pipelines, model serving and similar. It is not waste. It is spend this report cannot attribute to a job, which makes it a visibility gap to close before anyone can judge it.</p></details>
+        <details><summary>How are the savings estimated?</summary><p>Two transparent rules, shown next to each figure. Moving scheduled jobs off All-Purpose compute uses the price ratio between Jobs and All-Purpose compute. Right-sizing under-used clusters assumes you could shrink a cluster until its 95th percentile CPU reaches 60%, capped at half its cost. The two are applied in sequence so no dollar is counted twice.</p></details>
+        <details><summary>Which clouds does it work on?</summary><p>AWS, Azure and Google Cloud. The tables and columns are the same. Only the default price ratio differs slightly by cloud, tier and region, and you can edit it in the report.</p></details>
+        <details><summary>A query failed. What now?</summary><p>Most failures are permissions: ask an account admin to grant <code>SELECT</code> on the system schemas. If <code>system.lakeflow</code> or <code>system.compute</code> is not available in your account, run the queries you can. The report renders with any subset of the three files.</p></details>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ================= REPORT ================= -->
+<div id="report" hidden tabindex="-1"></div>
+</main>
+
+<footer class="foot-site">
+  <div class="wrap foot-in">
+    <div class="foot-brand">
+      <img src="brand/bighammer-logo-light.svg" alt="BigHammer.ai" width="150" height="28">
+      <p>Databricks cost and performance engineering. This free tool is part of the <em>Reduce your Databricks costs up to 75%</em> webinar series with Srinath Reddy, Founder and CEO.</p>
+    </div>
+    <ul class="foot-links">
+      <li><a href="https://bighammer.ai/book-demo/?utm_source=cost-xray&amp;utm_medium=lead-magnet&amp;utm_campaign=dbx-webinar-nurture-2026&amp;utm_content=footer-book-call">Book a call</a></li>
+      <li><a href="https://assessment.bighammerops.com/?utm_source=cost-xray&amp;utm_medium=lead-magnet&amp;utm_campaign=dbx-webinar-nurture-2026&amp;utm_content=footer-assessment">Offline cost assessment</a></li>
+      <li><a href="https://adisuja.github.io/bighammer-cost-field-guide/?utm_source=cost-xray&amp;utm_medium=lead-magnet&amp;utm_campaign=dbx-webinar-nurture-2026&amp;utm_content=footer-field-guide">Databricks Cost Field Guide</a></li>
+      <li><a href="https://github.com/adisuja/bighammer-cost-xray">Source on GitHub</a></li>
+    </ul>
+    <p class="foot-legal">Databricks is a trademark of Databricks, Inc. This tool is independent and not affiliated with or endorsed by Databricks. Figures are indicative and calculated at list price.</p>
+  </div>
+</footer>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script src="assets/sample.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>
